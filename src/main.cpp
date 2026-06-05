@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
+#include <exception>
 #include "PacketParser.h" //#include "Packet.h"
+#include "WarningDetector.h"
 
 int main(){
     // //Packet 객체 직접 만들어 test
@@ -16,6 +18,14 @@ int main(){
         std::cout << "Timestamp ID : " <<packet.getTimestamp() << std::endl;
         std::cout << "Type : " <<packet.getType() << std::endl;
         std::cout << "Value : " <<packet.getValue() << std::endl;
+
+        if(WarningDetector::isWarning(packet)){
+            std::cerr << "Status : WARNING" << std::endl;
+        }
+        else{
+            std::cout << "Status : NORMAL" << std::endl;
+        }
+
     } catch (const std::exception& e){
         // PacketParser::parse 호출 실패시 예외
         std::cerr << "Packet parsing failed: " << e.what() << std::endl;
