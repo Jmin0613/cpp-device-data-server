@@ -1,9 +1,17 @@
-app
-*.o
-logs/*.logs
-.vscode/
-
 # 컴파일 결과 실행 파일 제외
+app
+-app
+server
+client
+*.out
+*.exe
+
 # 오브젝트 파일 제외
+*.o
+
 # 실제 로그 파일 제외
+logs/*.log
+logs/*.logs
+
 # 개인 vscode 설정 제외
+.vscode/
