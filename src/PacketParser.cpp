@@ -1,6 +1,7 @@
 #include <sstream>
 #include <vector>
 #include <stdexcept>
+
 #include "PacketParser.h"
 
 Packet PacketParser::parser(const std::string& rawData){

@@ -1,5 +1,6 @@
 #include <fstream>
 #include <stdexcept>
+
 #include "Logger.h"
 
 Logger::Logger(const std::string& logFilePath)

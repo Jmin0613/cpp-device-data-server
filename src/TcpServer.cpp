@@ -1,11 +1,15 @@
-#include "TcpServer.h"
-
 #include <iostream>
 #include <cstring>
+#include <string>
+
+#include <cerrno>
+#include <stdexcept>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+
+#include "TcpServer.h"
 
 TcpServer::TcpServer(int port) : port(port){}
 
@@ -14,8 +18,9 @@ void TcpServer::start(){
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
     if(serverSocket == -1){
-        std::cerr << "Failed to  create socket" << std::endl;
-        return ;
+        std::string errorMessage = std::string("Failed to create server socket: ") + std::strerror(errno);
+
+        throw std::runtime_error(errorMessage);
     }
 
     // 주소 재사용 옵션 설정
@@ -33,17 +38,19 @@ void TcpServer::start(){
     // 4. 소켓에 주소 bind
     // 서버 socket에 IP/PORT 붙이기
     if(bind(serverSocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
-        std::cerr << "Failed to bind socket" << std::endl;
+        std::string errorMessage = std::string("Failed to bind socket: ") + std::strerror(errno);
+
         close(serverSocket);
-        return;
+        throw std::runtime_error(errorMessage);
     }
 
     // 5. 연결 대기 상태로 전환 listen
     // 클라이언트 접속 기다리기
     if(listen(serverSocket, 5) == -1){ //대기큐 크기 5.
-        std::cerr << "Failed to listen" << std::endl;
+        std::string errorMessage = std::string("Failed to listen: ") + std::strerror(errno);
+
         close(serverSocket);
-        return;
+        throw std::runtime_error(errorMessage);
     }
 
     std::cout << "Server listening on port " << port << "..." << std::endl;
@@ -56,9 +63,10 @@ void TcpServer::start(){
     int clientSocket = accept(serverSocket, (sockaddr*)&clientAddress, &clientAddressSize);
 
     if (clientSocket == -1){
-        std::cerr << "Failed to accept client" << std::endl;
+        std::string errorMessage = std::string("Failed to accept client: ") + std::strerror(errno);
+
         close(serverSocket);
-        return;
+        throw std::runtime_error(errorMessage);
     }
 
     std::cout << "Client connected!" << std::endl;
@@ -76,7 +84,11 @@ void TcpServer::start(){
     } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
         std::cout << "Client disconnected" << std::endl;
     } else{ // 음수값 -> 에러 발생
-        std::cerr << "Failed to receive data" << std::endl;
+        std::string errorMessage = std::string("Failed to receive data: ") + std::strerror(errno);
+
+        close(clientSocket);
+        close(serverSocket);
+        throw std::runtime_error(errorMessage);
     }
 
     // 8. 소켓 종료 close
