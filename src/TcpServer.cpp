@@ -11,17 +11,16 @@ TcpServer::TcpServer(int port) : port(port){}
 
 void TcpServer::start(){
     // 1. socket 생성
-    int serverFd = socket(AF_INET, SOCK_STREAM, 0);
+    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(serverFd == -1){
+    if(serverSocket == -1){
         std::cerr << "Failed to  create socket" << std::endl;
-        close(serverFd);
         return ;
     }
 
     // 주소 재사용 옵션 설정
     int option = 1;
-    setsockopt(serverFd, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+    setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
 
     // 3. 서버 구조체 설정
     // socket 구성요소를 담을 구조체 생성 및 값 할당
@@ -33,17 +32,17 @@ void TcpServer::start(){
 
     // 4. 소켓에 주소 bind
     // 서버 socket에 IP/PORT 붙이기
-    if(bind(serverFd, (sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
+    if(bind(serverSocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
         std::cerr << "Failed to bind socket" << std::endl;
-        close(serverFd);
+        close(serverSocket);
         return;
     }
 
     // 5. 연결 대기 상태로 전환 listen
     // 클라이언트 접속 기다리기
-    if(listen(serverFd, 5) == -1){ //대기큐 크기 5.
+    if(listen(serverSocket, 5) == -1){ //대기큐 크기 5.
         std::cerr << "Failed to listen" << std::endl;
-        close(serverFd);
+        close(serverSocket);
         return;
     }
 
@@ -54,11 +53,11 @@ void TcpServer::start(){
     sockaddr_in clientAddress{};
     socklen_t clientAddressSize = sizeof(clientAddress);
 
-    int clientFd = accept(serverFd, (sockaddr*)&clientAddress, &clientAddressSize);
+    int clientSocket = accept(serverSocket, (sockaddr*)&clientAddress, &clientAddressSize);
 
-    if (clientFd == -1){
+    if (clientSocket == -1){
         std::cerr << "Failed to accept client" << std::endl;
-        close(serverFd);
+        close(serverSocket);
         return;
     }
 
@@ -69,7 +68,7 @@ void TcpServer::start(){
     std::memset(buffer, 0, sizeof(buffer)); // 버퍼 초기화 
 
     // 클라이언트가 보낸 문자열 받기
-    ssize_t receivedBytes = recv(clientFd, buffer, sizeof(buffer)-1, 0);
+    ssize_t receivedBytes = recv(clientSocket, buffer, sizeof(buffer)-1, 0);
 
     if(receivedBytes > 0){ // 데이터 받음
         buffer[receivedBytes] = '\0';
@@ -81,7 +80,7 @@ void TcpServer::start(){
     }
 
     // 8. 소켓 종료 close
-    close(clientFd);
-    close(serverFd);
+    close(clientSocket);
+    close(serverSocket);
 
 }
