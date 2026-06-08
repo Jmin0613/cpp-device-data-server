@@ -42,7 +42,6 @@ void ClientSession::handle(){
         std::cout << "Client disconnected" << std::endl;
     } else{ // 음수값 -> 에러 발생
         std::cerr << "Failed to receive data: " << std::strerror(errno) << std::endl;
-
         // close(clientSocket);
     }
 

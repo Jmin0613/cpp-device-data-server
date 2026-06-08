@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#include <thread>
+
 #include "TcpServer.h"
 #include "ClientSession.h"
 
@@ -73,9 +75,13 @@ void TcpServer::start(){
 
         std::cout << "Client connected!" << std::endl;
 
-        // 7. ClientSession에서 recv/process/close 담당
-        ClientSession session(clientSocket, packetProcessor);
-        session.handle();
+        // 7. 멀티 스레드 구조로, ClientSession에서 recv/process/close 담당
+        std::thread clientThread([this, clientSocket]() {
+            ClientSession session(clientSocket, packetProcessor);
+            session.handle();
+        });
+        
+        clientThread.detach();
     }
 
 }
