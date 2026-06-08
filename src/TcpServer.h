@@ -7,8 +7,6 @@ private :
     int port;
     PacketProcessor& packetProcessor;
 
-    void handleClient(int clientSocket);
-
 public :
     // 생성자
     explicit TcpServer(int port, PacketProcessor& packetProcessor);
