@@ -11,7 +11,8 @@
 
 #include "TcpServer.h"
 
-TcpServer::TcpServer(int port) : port(port){}
+TcpServer::TcpServer(int port, PacketProcessor& packetProcessor) 
+: port(port), packetProcessor(packetProcessor){}
 
 void TcpServer::start(){
     // 1. socket 생성
@@ -79,8 +80,18 @@ void TcpServer::start(){
     ssize_t receivedBytes = recv(clientSocket, buffer, sizeof(buffer)-1, 0);
 
     if(receivedBytes > 0){ // 데이터 받음
-        buffer[receivedBytes] = '\0';
-        std::cout << "Received : " << buffer << std::endl;
+        // rawData 생성
+        std::string receivedData(buffer, receivedBytes);
+        std::cout << "Received : " << receivedData << std::endl;
+
+        // PacketProcessor 처리 연결
+        try{
+            ProcessResult result = packetProcessor.process(receivedData);
+            std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
+        } catch(const std::exception& e){
+            std::cerr << "Failed to process packet: " << e.what() << std::endl;
+        }
+
     } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
         std::cout << "Client disconnected" << std::endl;
     } else{ // 음수값 -> 에러 발생
@@ -90,6 +101,8 @@ void TcpServer::start(){
         close(serverSocket);
         throw std::runtime_error(errorMessage);
     }
+
+    
 
     // 8. 소켓 종료 close
     close(clientSocket);
