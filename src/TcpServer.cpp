@@ -14,6 +14,39 @@
 TcpServer::TcpServer(int port, PacketProcessor& packetProcessor) 
 : port(port), packetProcessor(packetProcessor){}
 
+void TcpServer::handleClient(int clientSocket){
+    // 7. 데이터 송수신 recv
+    char buffer[1024];
+    std::memset(buffer, 0, sizeof(buffer)); // 버퍼 초기화 
+
+    // 클라이언트가 보낸 문자열 받기
+    ssize_t receivedBytes = recv(clientSocket, buffer, sizeof(buffer)-1, 0);
+    if(receivedBytes > 0){ // 데이터 받음
+        // rawData 생성
+        std::string receivedData(buffer, receivedBytes);
+        std::cout << "Received : " << receivedData << std::endl;
+
+        // PacketProcessor 처리 연결
+        try{
+            ProcessResult result = packetProcessor.process(receivedData);
+            std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
+        } catch(const std::exception& e){
+            std::cerr << "Failed to process packet: " << e.what() << std::endl;
+        }
+
+    } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
+        std::cout << "Client disconnected" << std::endl;
+    } else{ // 음수값 -> 에러 발생
+        std::string errorMessage = std::string("Failed to receive data: ") + std::strerror(errno);
+
+        close(clientSocket);
+        throw std::runtime_error(errorMessage);
+    }
+
+    // 8. 소켓 종료 close
+    close(clientSocket);
+}
+
 void TcpServer::start(){
     // 1. socket 생성
     int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -56,56 +89,24 @@ void TcpServer::start(){
 
     std::cout << "Server listening on port " << port << "..." << std::endl;
 
-    // 6. 클라이언트 연결 수락 accept
-    // 클라이언트 접속 받기
-    sockaddr_in clientAddress{};
-    socklen_t clientAddressSize = sizeof(clientAddress);
+    //while : accept, handleClient(recv + close)
+    while(true){
+        // 6. 클라이언트 연결 수락 accept
+        // 클라이언트 접속 받기
+        sockaddr_in clientAddress{};
+        socklen_t clientAddressSize = sizeof(clientAddress);
 
-    int clientSocket = accept(serverSocket, (sockaddr*)&clientAddress, &clientAddressSize);
+        int clientSocket = accept(serverSocket, (sockaddr*)&clientAddress, &clientAddressSize);
 
-    if (clientSocket == -1){
-        std::string errorMessage = std::string("Failed to accept client: ") + std::strerror(errno);
-
-        close(serverSocket);
-        throw std::runtime_error(errorMessage);
-    }
-
-    std::cout << "Client connected!" << std::endl;
-
-    // 7. 데이터 송수신 recv
-    char buffer[1024];
-    std::memset(buffer, 0, sizeof(buffer)); // 버퍼 초기화 
-
-    // 클라이언트가 보낸 문자열 받기
-    ssize_t receivedBytes = recv(clientSocket, buffer, sizeof(buffer)-1, 0);
-
-    if(receivedBytes > 0){ // 데이터 받음
-        // rawData 생성
-        std::string receivedData(buffer, receivedBytes);
-        std::cout << "Received : " << receivedData << std::endl;
-
-        // PacketProcessor 처리 연결
-        try{
-            ProcessResult result = packetProcessor.process(receivedData);
-            std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
-        } catch(const std::exception& e){
-            std::cerr << "Failed to process packet: " << e.what() << std::endl;
+        if (clientSocket == -1){
+            std::cerr << "Failed to accept client: " << std::strerror(errno) << std::endl;
+            continue;
         }
 
-    } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
-        std::cout << "Client disconnected" << std::endl;
-    } else{ // 음수값 -> 에러 발생
-        std::string errorMessage = std::string("Failed to receive data: ") + std::strerror(errno);
+        std::cout << "Client connected!" << std::endl;
 
-        close(clientSocket);
-        close(serverSocket);
-        throw std::runtime_error(errorMessage);
+        // 7. 데이터 송수신 recv + 8. close
+        handleClient(clientSocket);
     }
-
-    
-
-    // 8. 소켓 종료 close
-    close(clientSocket);
-    close(serverSocket);
 
 }
