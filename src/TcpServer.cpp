@@ -14,8 +14,8 @@
 #include "TcpServer.h"
 #include "ClientSession.h"
 
-TcpServer::TcpServer(int port, PacketProcessor& packetProcessor) 
-: port(port), packetProcessor(packetProcessor){}
+TcpServer::TcpServer(int port, PacketProcessor& packetProcessor, int maxClients) 
+: port(port), packetProcessor(packetProcessor), maxClients(maxClients), activeClients(0) {}
 
 void TcpServer::start(){
     // 1. socket 생성
@@ -75,10 +75,28 @@ void TcpServer::start(){
 
         std::cout << "Client connected!" << std::endl;
 
+        // thread 만들기 전, activeClients 체크
+        if(activeClients.load() >= maxClients){
+            std::cout << "server busy. Connection rejected." << std::endl;
+            close(clientSocket); // 접속한 client Socket 닫아버리기.
+            continue;
+        }
+
+        activeClients++; //.fetch_add(1);
+
         // 7. 멀티 스레드 구조로, ClientSession에서 recv/process/close 담당
         std::thread clientThread([this, clientSocket]() {
-            ClientSession session(clientSocket, packetProcessor);
-            session.handle();
+            try{
+                ClientSession session(clientSocket, packetProcessor);
+                session.handle();
+            } catch(const std::exception& e){
+                std::cerr << "Client thread error: " << e.what() << std::endl;
+            }
+            
+            activeClients--;
+            
+            std::cout << "Client session finished. Active clients: " 
+            << activeClients.load() << "/" << maxClients << std::endl;
         });
         
         clientThread.detach();
