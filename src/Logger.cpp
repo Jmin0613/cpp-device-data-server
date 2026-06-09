@@ -7,6 +7,9 @@ Logger::Logger(const std::string& logFilePath)
 : logFilePath(logFilePath) {}
 
 void Logger::write(const Packet& packet, bool isWarning){
+    // 현재 thread로 mutex 잠그기
+    std::lock_guard<std::mutex> lock(logMutex);
+
     // append 이어쓰기 모드로 열기
     std::ofstream outFile(logFilePath, std::ios::app);
 
@@ -25,7 +28,6 @@ void Logger::write(const Packet& packet, bool isWarning){
             << packet.getValue() << "|"
             << status << std::endl;  
 
-    // 파일 닫기
-    outFile.close(); //ofsteam 소멸 시 자동으로 닫히지만, 명시적으로 닫아줌.
+    // 파일 닫기 - ofsteam 소멸 시 자동 close
 
-}
+} //함수 끝나는 순간 lock객체 소멸 → 자물쇠 풀림.
