@@ -3,18 +3,17 @@
 #include <atomic>
 
 #include "PacketProcessor.h"
+#include "ThreadPool.h"
 
 class TcpServer{
 private :
     int port;
     PacketProcessor& packetProcessor;
-
-    int maxClients; // 접속 가능한 클라이언트 수 
-    std::atomic<int> activeClients; // 현재 서버에 접속한 클라이언트 수 
+    ThreadPool threadPool;
 
 public :
     // 생성자
-    explicit TcpServer(int port, PacketProcessor& packetProcessor, int maxClients);
+    explicit TcpServer(int port, PacketProcessor& packetProcessor, int workerCount, int maxQueueSize);
     
     // 서버 구동
     void start();

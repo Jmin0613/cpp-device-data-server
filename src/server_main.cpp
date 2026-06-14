@@ -10,7 +10,10 @@ int main(){
         PacketProcessor packetProcessor("logs/device.log");
 
         // 2. TcpServer 생성할 때, PacketProcessor 전달
-        TcpServer server(9000, packetProcessor, 10);
+        int port = 9000;
+        int workerCount = 2;
+        int maxQueueSize = 2;
+        TcpServer server(port, packetProcessor, workerCount, maxQueueSize);
 
         // 3. server.start()
         server.start();

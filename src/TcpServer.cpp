@@ -9,13 +9,10 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
-#include <thread>
-
 #include "TcpServer.h"
-#include "ClientSession.h"
 
-TcpServer::TcpServer(int port, PacketProcessor& packetProcessor, int maxClients) 
-: port(port), packetProcessor(packetProcessor), maxClients(maxClients), activeClients(0) {}
+TcpServer::TcpServer(int port, PacketProcessor& packetProcessor, int workerCount, int maxQueueSize) 
+: port(port), packetProcessor(packetProcessor), threadPool(workerCount, maxQueueSize, packetProcessor) {}
 
 void TcpServer::start(){
     // 1. socket 생성
@@ -59,7 +56,7 @@ void TcpServer::start(){
 
     std::cout << "Server listening on port " << port << "..." << std::endl;
 
-    //while : accept, handleClient(recv + close)
+    // while : accept, handleClient(recv + close)
     while(true){
         // 6. 클라이언트 연결 수락 accept
         // 클라이언트 접속 받기
@@ -75,31 +72,15 @@ void TcpServer::start(){
 
         std::cout << "Client connected!" << std::endl;
 
-        // thread 만들기 전, activeClients 체크
-        if(activeClients.load() >= maxClients){
-            std::cout << "server busy. Connection rejected." << std::endl;
-            close(clientSocket); // 접속한 client Socket 닫아버리기.
-            continue;
+        // threadPool job queue에 clientSocket 작업 넣기
+        if(!threadPool.enqueue(clientSocket)){ //꽉차서 false 오면 
+            std::cout << "Server busy. Connection rejected." << std::endl;
+            close(clientSocket); //해당 clientSocket close하고
+            continue; // 다음 요청 받기
         }
 
-        activeClients++; //.fetch_add(1);
-
-        // 7. 멀티 스레드 구조로, ClientSession에서 recv/process/close 담당
-        std::thread clientThread([this, clientSocket]() {
-            try{
-                ClientSession session(clientSocket, packetProcessor);
-                session.handle();
-            } catch(const std::exception& e){
-                std::cerr << "Client thread error: " << e.what() << std::endl;
-            }
-            
-            activeClients--;
-            
-            std::cout << "Client session finished. Active clients: " 
-            << activeClients.load() << "/" << maxClients << std::endl;
-        });
-        
-        clientThread.detach();
+        // enqueue true일 경우, job 통신 처리 성공(recv/process/close)
+        std::cout << "Client queued." << std::endl;
     }
 
 }
