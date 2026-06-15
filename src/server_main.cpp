@@ -1,10 +1,21 @@
 #include <iostream>
 #include <exception>
+#include <csignal>
 
 #include "TcpServer.h"
 #include "PacketProcessor.h"
 
+// Ctrl+C 감지 flag
+volatile sig_atomic_t shutdownRequested = 0;
+
+void handleSignal(int){
+    shutdownRequested = 1;
+}
+
 int main(){
+    // Ctrl+C 감지
+    std::signal(SIGINT, handleSignal);
+
     try{
         // 1. PacketProcessor 생성
         PacketProcessor packetProcessor("logs/device.log");

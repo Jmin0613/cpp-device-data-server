@@ -36,4 +36,7 @@ public :
 
     // job 넣기
     bool enqueue(int clientSocket);
+
+    // 종료 감지 후, worker 정리
+    void shutdown();
 };

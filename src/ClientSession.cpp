@@ -3,9 +3,11 @@
 #include <string>
 
 #include <cerrno>
+#include <exception>
 
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "ClientSession.h"
 
@@ -14,10 +16,23 @@ ClientSession::ClientSession(int clientSocket, PacketProcessor& packetProcessor)
 : clientSocket(clientSocket), packetProcessor(packetProcessor) {}
 
 ClientSession::~ClientSession(){
-    close(clientSocket);
+    if(clientSocket != -1){
+        close(clientSocket);
+        clientSocket = -1; // 해당 socket 번호 삭제.
+    }
 }
 
 void ClientSession::handle(){
+    // timeout 설정
+    timeval timeout{};
+    timeout.tv_sec = 3;
+    timeout.tv_usec = 0;
+
+    if(setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1){
+        std::cerr << "Failed to set client recv timeout: " << std::strerror(errno) << std::endl;
+        return;
+    }
+
     // 7. 데이터 송수신 recv
     char buffer[1024];
     std::memset(buffer, 0, sizeof(buffer)); // 버퍼 초기화 
@@ -40,8 +55,15 @@ void ClientSession::handle(){
 
     } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
         std::cout << "Client disconnected" << std::endl;
-    } else{ // 음수값 -> 에러 발생
-        std::cerr << "Failed to receive data: " << std::strerror(errno) << std::endl;
+    } else{ // 음수값
+        // receivedBytes == -1
+        if(errno == EAGAIN || errno == EWOULDBLOCK){ // timeout
+            std::cout << "recv timeout. Closing client socket." << std::endl;
+        } else if(errno == EINTR){ // signal로 인한 중단
+            std::cout << "recv interrupted. Closing client socket." << std::endl;
+        } else{ // 그 외 에러
+            std::cerr << "Failed to receive data: " << std::strerror(errno) << std::endl;
+        }
         // close(clientSocket);
     }
 

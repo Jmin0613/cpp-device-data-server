@@ -15,27 +15,7 @@ ThreadPool::ThreadPool(int workerCount, int maxQueueSize, PacketProcessor& packe
 }
 
 ThreadPool::~ThreadPool() {
-    running = false; // 동작 그만.
-
-    {
-        std::lock_guard<std::mutex> lock(queueMutex);
-
-        // worker 종료 전, 남은 queue 비워서 청소.
-        while(!clientQueue.empty()) {
-            int clientSocket = clientQueue.front();
-            clientQueue.pop();
-            close(clientSocket);
-        }
-    }
-
-    condition.notify_all(); // 잠든 worker threads 깨우기.
-    
-    // 모든 worker threads 종료 위해 대기
-    for(auto& worker : workers) { // std::thread&
-        if(worker.joinable()) {
-            worker.join(); //해당 worker가 완전히 종료될 때까지 현재 thread 대기.
-        }
-    }
+    shutdown();
 }
 
 bool ThreadPool::enqueue(int clientSocket){
@@ -47,9 +27,9 @@ bool ThreadPool::enqueue(int clientSocket){
             return false;
         }
 
-        std::cout << "[ThreadPool] job queue size: "
-        << clientQueue.size() << "/"
-        << maxQueueSize << std::endl;
+        // std::cout << "[ThreadPool] job queue size: "
+        // << clientQueue.size() << "/"
+        // << maxQueueSize << std::endl;
 
         // client queue is_full
         if(clientQueue.size() >= maxQueueSize){
@@ -58,9 +38,9 @@ bool ThreadPool::enqueue(int clientSocket){
 
         clientQueue.push(clientSocket); //클라이언트 소켓 번호 넘기기
 
-        std::cout << "[ThreadPool] enqueue success. job queue size: " 
-        << clientQueue.size() << "/"
-        << maxQueueSize << std::endl;
+        // std::cout << "[ThreadPool] enqueue success. job queue size: " 
+        // << clientQueue.size() << "/"
+        // << maxQueueSize << std::endl;
     }
 
     condition.notify_one();
@@ -99,6 +79,24 @@ void ThreadPool::workerLoop(){
         } catch(const std::exception& e){
             std::cerr << "Worker thread error: " << e.what() << std::endl;
             // close(clientSocket); → session에서 close처리.
+        }
+    }
+}
+
+void ThreadPool::shutdown(){
+    {
+        std::unique_lock<std::mutex> lock(queueMutex);
+        running = false; //동작 종료로 변경
+    }
+
+    condition.notify_all(); // 전체 worker 깨우기
+
+    // queue에 들어온 job 처리하고 들어옴 → 안 비워도 됨.
+
+    // 모든 worker threads 종료 위해 대기
+    for(auto& worker: workers){
+        if(worker.joinable()){
+            worker.join();
         }
     }
 }
