@@ -15,4 +15,5 @@ public :
     void sendPacket(const std::string& packet); //생성된 packet, server로 전송
     void run(int packetCount, int delayMs); // 지연시간, 전송패킷 수 지정하여 실행
 
+    void runContinuous(int packetCount, int delayMs); // 패킷 다중 전송 실행
 };

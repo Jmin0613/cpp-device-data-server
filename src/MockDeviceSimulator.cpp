@@ -138,3 +138,63 @@ void MockDeviceSimulator::run(int packetCount, int delayMs){
         std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
     }
 }
+
+// 다중 전송 실행
+void MockDeviceSimulator::runContinuous(int packetCount, int delayMs){
+    // client socket 생성
+    int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if(clientSocket == -1){
+        std::string errorMessage = std::string("Failed to create client socket: ") + std::strerror(errno);
+
+        throw std::runtime_error(errorMessage);
+    }
+
+    // 접속할 server 주소 설정
+    sockaddr_in serverAddress{};
+
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(serverPort); //가려는 서버 포트
+    
+    if(inet_pton(AF_INET, serverIp.c_str(), &serverAddress.sin_addr) <= 0 ){
+        close(clientSocket);
+        throw std::runtime_error(std::string("Invalid server IP address: ") + serverIp);
+    }
+
+    // 서버 접속 - connect
+    if(connect(clientSocket, (sockaddr*)&serverAddress, sizeof(serverAddress)) == -1){
+        std::string errorMessage = std::string("Failed to connect to server: ") + std::strerror(errno);
+
+        close(clientSocket);
+        throw std::runtime_error(errorMessage);
+    }
+
+    // 다중 패캣 전송
+    for(int i=0; i < packetCount; i++){
+        std::string packet = generatePacket() + "\n"; //구분자 추가
+        // send
+        ssize_t sentBytes = send(clientSocket, packet.c_str(), packet.size(), 0);
+
+        // 실패없이 보냈는지 체크
+        if(sentBytes == -1){
+            std::string errorMessage = std::string("Failed to send packet data: ") + std::strerror(errno);
+
+            close(clientSocket);
+            throw std::runtime_error(errorMessage);
+        }
+
+        // 보낸 packet 바이트 수 체크 (안 잘리고 다 보내졌는지)
+        if(sentBytes != static_cast<ssize_t>(packet.size())) {
+            close(clientSocket);
+            throw std::runtime_error("Failed to send entire packet data");
+        }
+
+        std::cout << "Sent : " << packet;
+
+        // 지연
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+    }
+
+    // close
+    close(clientSocket);
+}
