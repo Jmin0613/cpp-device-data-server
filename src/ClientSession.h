@@ -6,6 +6,9 @@ class ClientSession{
 private :
     int clientSocket;
     PacketProcessor& packetProcessor;
+    
+    //packet 처리
+    void processPacketData(const std::string& packetData);
 
 public :
     // 생성자

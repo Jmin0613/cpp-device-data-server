@@ -22,6 +22,23 @@ ClientSession::~ClientSession(){
     }
 }
 
+void ClientSession::processPacketData(const std::string& packetData){
+    // 빈 패킷 넘너뛰기
+    if(packetData.empty()){
+        return;
+    }
+
+    // packet마다 processor 처리
+    try{
+        ProcessResult result = packetProcessor.process(packetData);
+
+        std::cout << "Received: " << packetData << std::endl;
+        std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
+    } catch(const std::exception& e){
+        std::cerr << "Failed to process packet: " << e.what() << std::endl;
+    }
+}
+
 void ClientSession::handle(){
     // timeout 설정
     timeval timeout{};
@@ -35,38 +52,50 @@ void ClientSession::handle(){
 
     // 7. 데이터 송수신 recv
     char buffer[1024];
-    std::memset(buffer, 0, sizeof(buffer)); // 버퍼 초기화 
+    std::string pendingBuffer; // data 누적할 buffer
 
-    // 클라이언트가 보낸 문자열 받기
-    ssize_t receivedBytes = recv(clientSocket, buffer, sizeof(buffer)-1, 0);
+    while(true){
+        // 클라이언트가 보낸 문자열 받기
+        ssize_t receivedBytes = recv(clientSocket, buffer, sizeof(buffer), 0);
 
-    if(receivedBytes > 0){ // 데이터 받음
-        // rawData 생성
-        std::string receivedData(buffer, receivedBytes);
-        std::cout << "Received : " << receivedData << std::endl;
+        if(receivedBytes > 0){ // 데이터 받음
+            // data 누적
+            pendingBuffer.append(buffer, receivedBytes);
 
-        // PacketProcessor 처리 연결
-        try{
-            ProcessResult result = packetProcessor.process(receivedData);
-            std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
-        } catch(const std::exception& e){
-            std::cerr << "Failed to process packet: " << e.what() << std::endl;
+            // packet 분리
+            size_t linePos;
+            while((linePos = pendingBuffer.find('\n')) != std::string::npos){
+                // \n 기준으로 packet 추출 후, 지우기
+                std::string packetData = pendingBuffer.substr(0, linePos);
+                pendingBuffer.erase(0, linePos + 1);
+
+                // packet마다 processor처리
+                processPacketData(packetData);  
+            }
+
+        } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
+            // client close 시, 마지막 데이터 불완전 packet 판단.
+            if(!pendingBuffer.empty()){
+                std::cerr << "Discarding incomplete packet: " << pendingBuffer << std::endl;
+                pendingBuffer.clear(); // 비우기
+            }
+
+            std::cout << "Client disconnected" << std::endl;
+            break;
+        } else{ // 음수값
+            // receivedBytes == -1
+            if(errno == EAGAIN || errno == EWOULDBLOCK){ // timeout
+                std::cout << "recv timeout. Closing client socket." << std::endl;
+            } else if(errno == EINTR){ // signal로 인한 중단
+                std::cout << "recv interrupted. Closing client socket." << std::endl;
+            } else{ // 그 외 에러
+                std::cerr << "Failed to receive data: " << std::strerror(errno) << std::endl;
+            }
+            break;
+            // close(clientSocket);
         }
 
-    } else if(receivedBytes == 0){ // 클라이언트가 연결을 종료
-        std::cout << "Client disconnected" << std::endl;
-    } else{ // 음수값
-        // receivedBytes == -1
-        if(errno == EAGAIN || errno == EWOULDBLOCK){ // timeout
-            std::cout << "recv timeout. Closing client socket." << std::endl;
-        } else if(errno == EINTR){ // signal로 인한 중단
-            std::cout << "recv interrupted. Closing client socket." << std::endl;
-        } else{ // 그 외 에러
-            std::cerr << "Failed to receive data: " << std::strerror(errno) << std::endl;
-        }
-        // close(clientSocket);
     }
-
     // 8. 소켓 종료 close
     // close(clientSocket); → 소멸자
 }
