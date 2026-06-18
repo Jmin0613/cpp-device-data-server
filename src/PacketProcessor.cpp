@@ -27,7 +27,6 @@ ProcessResult PacketProcessor::process(const std::string& rawData){
     } catch(const std::exception&){
         // 파싱 에러 통계 수집
         statistics.recordParseError();
-        // std::cout << "StatisTicsParseError" << std::endl;
         throw;
     }
 
