@@ -1,8 +1,9 @@
 # 컴파일 결과 실행 파일 제외
-app
--app
-server
-client
+/app
+/server
+/client
+/epoll_server
+/mock_simulator
 *.out
 *.exe
 
