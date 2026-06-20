@@ -5,8 +5,16 @@
 #include "ThreadPool.h"
 #include "ClientSession.h"
 
-ThreadPool::ThreadPool(int workerCount, int maxQueueSize, PacketProcessor& packetProcessor)
+ThreadPool::ThreadPool(int workerCount, size_t maxQueueSize, PacketProcessor& packetProcessor)
 : packetProcessor(packetProcessor), maxQueueSize(maxQueueSize), running(true) {
+    if(workerCount <= 0){
+        throw std::invalid_argument("workerCount must be positive");
+    }
+
+    if(maxQueueSize == 0) {
+        throw std::invalid_argument("maxQueueSize must be positive");
+    }
+    
     workers.reserve(workerCount);
 
     for(int i=0; i< workerCount; ++i){
@@ -86,6 +94,9 @@ void ThreadPool::workerLoop(){
 void ThreadPool::shutdown(){
     {
         std::unique_lock<std::mutex> lock(queueMutex);
+
+        if(!running) return;
+        
         running = false; //동작 종료로 변경
     }
 

@@ -1,9 +1,9 @@
 #include <iostream>
-#include <exception>
 #include <csignal>
 
-#include "TcpServer.h"
 #include "PacketProcessor.h"
+#include "PacketTaskThreadPool.h"
+#include "EpollTcpServer.h"
 
 #include "StatisticsCollector.h"
 #include "StatisticsReporter.h"
@@ -28,16 +28,23 @@ int main(){
         StatisticsReporter reporter(statistics, 5); //5초마다 상태 갱신
         reporter.start();
 
-        // 3. TcpServer 생성할 때, PacketProcessor 전달
+        // 3. EpollTcpServer 생성할 때, PacketProcessor를 품은 PacketTaskThreadPool 전달
         int port = 9000;
         int workerCount = 2;
-        int maxQueueSize = 2;
-        TcpServer server(port, packetProcessor, workerCount, maxQueueSize);
+        int maxQueueSize = 100;
+
+        PacketTaskThreadPool packetTaskThreadPool(workerCount, maxQueueSize, packetProcessor);
+        EpollTcpServer server(port, packetTaskThreadPool);
 
         // 4. server.start()
         server.start();
 
-        // 5. reporter.stop()
+        // ---------------------- server shutdown() 
+
+        // 5. PacketTaskThreadPool.stop()
+        packetTaskThreadPool.shutdown();
+
+        // 6. reporter.stop()
         reporter.stop();
         
     } catch(const std::exception& e){

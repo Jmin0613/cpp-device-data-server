@@ -13,7 +13,7 @@ private :
 
 public :
     // 생성자
-    explicit TcpServer(int port, PacketProcessor& packetProcessor, int workerCount, int maxQueueSize);
+    explicit TcpServer(int port, PacketProcessor& packetProcessor, int workerCount, size_t maxQueueSize);
     
     // 서버 구동
     void start();

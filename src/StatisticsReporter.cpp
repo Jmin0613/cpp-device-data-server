@@ -70,5 +70,5 @@ void StatisticsReporter::printSnapshot(const StatisticsSnapshot& snapshot) const
         std::cout << "Max   : " << stats.max << "\n";
     }
 
-    std::cout << "=======================================\n";
+    std::cout << "=======================================" << std::endl;
 }

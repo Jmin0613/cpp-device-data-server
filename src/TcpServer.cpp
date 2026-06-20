@@ -16,7 +16,7 @@
 
 extern volatile sig_atomic_t shutdownRequested;
 
-TcpServer::TcpServer(int port, PacketProcessor& packetProcessor, int workerCount, int maxQueueSize) 
+TcpServer::TcpServer(int port, PacketProcessor& packetProcessor, int workerCount, size_t maxQueueSize) 
 : port(port), packetProcessor(packetProcessor), threadPool(workerCount, maxQueueSize, packetProcessor) {}
 
 void TcpServer::start(){
