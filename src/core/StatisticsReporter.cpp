@@ -56,6 +56,7 @@ void StatisticsReporter::printSnapshot(const StatisticsSnapshot& snapshot) const
     std::cout << "Normal        : " << snapshot.normalCount << "\n";
     std::cout << "Warning       : " << snapshot.warningCount << "\n";
     std::cout << "Parse errors  : " << snapshot.parseErrorCount << "\n";
+    std::cout << "Processing elapsed(ms) : " << statistics.getProcessingElapsedMs() << std::endl;
 
     for(const auto& pair : snapshot.typeStats){
         const std::string& type = pair.first;

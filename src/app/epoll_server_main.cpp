@@ -31,7 +31,7 @@ int main(){
         // 3. EpollTcpServer 생성할 때, PacketProcessor를 품은 PacketTaskThreadPool 전달
         int port = 9000;
         int workerCount = 2;
-        int maxQueueSize = 100;
+        int maxQueueSize = 1000;
 
         PacketTaskThreadPool packetTaskThreadPool(workerCount, maxQueueSize, packetProcessor);
         EpollTcpServer server(port, packetTaskThreadPool);

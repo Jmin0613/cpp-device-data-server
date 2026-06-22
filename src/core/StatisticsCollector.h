@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <chrono>
+
 #include "Packet.h"
 
 // type별 통계 저장
@@ -40,11 +42,19 @@ private :
     // sever 실행되는 동안 update되는 실제 data 창고 (원본)
     std::unordered_map<std::string, TypeStatistics> typeStats;
 
+    // 테스트용 : elapsed time
+    bool hasFirstPacketTime = false;
+    std::chrono::steady_clock::time_point firstPacketTime;
+    std::chrono::steady_clock::time_point lastPacketTime;
+
 public :
     void recordPacket(const Packet& packet, bool warning);
     void recordParseError();
 
     // snapshot 찍기(복사)
     StatisticsSnapshot getSnapshot() const;
+
+    // 테스트용 : getter
+    long long getProcessingElapsedMs() const;
 
 };

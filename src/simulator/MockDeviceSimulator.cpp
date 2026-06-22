@@ -139,7 +139,7 @@ void MockDeviceSimulator::run(int packetCount, int delayMs){
     }
 }
 
-// 다중 전송 실행
+// (단일 client) 다중 전송 실행
 void MockDeviceSimulator::runContinuous(int packetCount, int delayMs){
     // client socket 생성
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -197,4 +197,28 @@ void MockDeviceSimulator::runContinuous(int packetCount, int delayMs){
 
     // close
     close(clientSocket);
+}
+
+// 테스트용 (다중 client)
+void MockDeviceSimulator::runContinuous(int clientCount, int packetCount, int delayMs){
+    // client 역할을 해줄 thread 생성
+    std::vector<std::thread> clientThreads;
+    clientThreads.reserve(clientCount);
+
+    // 각 clientThread 별, 패킷 전송 실행
+    for(int i = 0; i < clientCount; i++){
+        clientThreads.emplace_back([this, packetCount, delayMs]() {
+            runContinuous(packetCount, delayMs);
+        });
+    }
+
+    // client대용 thread 정리
+    for (auto& clientThread : clientThreads) {
+        if (clientThread.joinable()) {
+            clientThread.join();
+        }
+    }
+
+    std::cout << "All mock clients finished" << std::endl;
+
 }

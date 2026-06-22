@@ -31,7 +31,7 @@ int main(){
         // 3. TcpServer 생성할 때, PacketProcessor 전달
         int port = 9000;
         int workerCount = 2;
-        int maxQueueSize = 2;
+        int maxQueueSize = 100;
         TcpServer server(port, packetProcessor, workerCount, maxQueueSize);
 
         // 4. server.start()

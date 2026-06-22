@@ -68,7 +68,7 @@ void TcpServer::start(){
 
     // 5. 연결 대기 상태로 전환 listen
     // 클라이언트 접속 기다리기
-    if(listen(serverSocket, 5) == -1){ //대기큐 크기 5.
+    if(listen(serverSocket, 128) == -1){ //대기큐 크기 5.
         std::string errorMessage = std::string("Failed to listen: ") + std::strerror(errno);
 
         close(serverSocket);

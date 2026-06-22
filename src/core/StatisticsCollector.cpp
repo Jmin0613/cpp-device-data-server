@@ -4,6 +4,15 @@
 void StatisticsCollector::recordPacket(const Packet& packet, bool warning){
     std::lock_guard<std::mutex> lock(mutex);
 
+    // 테스트용 : elapsed time 체크
+    auto now = std::chrono::steady_clock::now();
+
+    if(!hasFirstPacketTime){
+        firstPacketTime = now;
+        hasFirstPacketTime = true;
+    }
+    lastPacketTime = now;
+
     // 공통 cnt 증가
     totalCount++;
     
@@ -42,7 +51,6 @@ void StatisticsCollector::recordParseError(){
 // snapshot 찍기
 StatisticsSnapshot StatisticsCollector::getSnapshot() const{
     std::lock_guard<std::mutex> lock(mutex);
-
     
     StatisticsSnapshot snapshot{};
 
@@ -56,4 +64,18 @@ StatisticsSnapshot StatisticsCollector::getSnapshot() const{
     snapshot.typeStats = typeStats;
 
     return snapshot;
+}
+
+// 테스트용 : getter
+long long StatisticsCollector::getProcessingElapsedMs() const{
+    std::lock_guard<std::mutex> lock(mutex);
+
+    // packet 처리 x
+     if(!hasFirstPacketTime){
+        return 0;
+    }
+
+    // elapsed time 계산
+    return std::chrono::duration_cast<std::chrono::milliseconds>(lastPacketTime - firstPacketTime).count();
+
 }

@@ -32,8 +32,8 @@ void ClientSession::processPacketData(const std::string& packetData){
     try{
         ProcessResult result = packetProcessor.process(packetData);
 
-        std::cout << "Received: " << packetData << std::endl;
-        std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
+        // std::cout << "Received: " << packetData << std::endl;
+        // std::cout << "Status: " << (result.warning ? "WARNING" : "NORMAL") << std::endl;
     } catch(const std::exception& e){
         std::cerr << "Failed to process packet: " << e.what() << std::endl;
     }
