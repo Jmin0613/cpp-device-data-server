@@ -246,7 +246,7 @@ ThreadPool TCP Server와 Epoll TCP Server를 동일한 mock traffic 조건에서
 #### 테스트 결과
 
 | 테스트 | 서버                    | Expected Total | Total packets | Parse errors | Processing elapsed(ms) | 결과    |
-| --- | --------------------- | -------------: | ------------: | -----------: | ---------------------: | ----- |
+| --- | --------------------- | -------------: | ------------: | -----------: | ---------------------: | -------- |
 | A   | ThreadPool TCP Server |             30 |            30 |            0 |                   2904 | 정상 처리 |
 | A   | Epoll TCP Server      |             30 |            30 |            0 |                   2904 | 정상 처리 |
 | B   | ThreadPool TCP Server |            150 |           150 |            0 |                   1506 | 정상 처리 |
@@ -274,16 +274,24 @@ ThreadPool TCP Server와 Epoll TCP Server를 동일한 mock traffic 조건에서
 
 이 테스트는 짧은 시간에 많은 packet을 전송했을 때 두 서버의 처리 경향 차이를 확인하기 위한 목적입니다.
 
+
+#### 테스트 조건
+| 테스트 | clientCount | packetCount per client | delayMs | Expected Total |
+| --- | ----------: | ---------------------: | ------: | -------------: |
+| E |          20 |                   1000 |       0 |          20000 |
+| F |          50 |                   1000 |       0 |          50000 |
+| G |         100 |                   1000 |       0 |         100000 |
+
 #### 테스트 결과
 
-| 조건               | 서버                    | Expected Total | Total packets | 누락 packet | Parse errors | Processing elapsed(ms) |
-| ---------------- | --------------------- | -------------: | ------------: | --------: | -----------: | ---------------------: |
-| 20 × 1000 × 0ms  | ThreadPool TCP Server |          20000 |         20000 |         0 |            0 |                   1346 |
-| 20 × 1000 × 0ms  | Epoll TCP Server      |          20000 |         18489 |      1511 |            0 |                    739 |
-| 50 × 1000 × 0ms  | ThreadPool TCP Server |          50000 |         50000 |         0 |            0 |                   3457 |
-| 50 × 1000 × 0ms  | Epoll TCP Server      |          50000 |         47928 |      2072 |            0 |                   1880 |
-| 100 × 1000 × 0ms | ThreadPool TCP Server |         100000 |        100000 |         0 |            0 |                   6985 |
-| 100 × 1000 × 0ms | Epoll TCP Server      |         100000 |         88042 |     11958 |            0 |                   3472 |
+| 테스트 | 서버                    | Expected Total | Total packets | 누락 packet | Parse errors | Processing elapsed(ms) |
+| --- | --------------------- | -------------: | ------------: | --------: | -----------: | ---------------------: |
+| E | ThreadPool TCP Server |          20000 |         20000 |         0 |            0 |                   1346 |
+| E | Epoll TCP Server      |          20000 |         18489 |      1511 |            0 |                    739 |
+| F | ThreadPool TCP Server |          50000 |         50000 |         0 |            0 |                   3457 |
+| F | Epoll TCP Server      |          50000 |         47928 |      2072 |            0 |                   1880 |
+| G | ThreadPool TCP Server |         100000 |        100000 |         0 |            0 |                   6985 |
+| G | Epoll TCP Server      |         100000 |         88042 |     11958 |            0 |                   3472 |
 
 테스트 결과, ThreadPool TCP Server는 처리 시간이 더 길었지만 `Expected Total`과 동일한 packet 수를 처리했습니다.
 
